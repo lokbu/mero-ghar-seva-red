@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -6,6 +7,8 @@ import AuthPage from '@/components/auth/AuthPage';
 import EmailLinkCompletion from '@/components/auth/EmailLinkCompletion';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import Dashboard from '@/components/Dashboard';
+import Login from '@/pages/Login';
+import Services from '@/pages/Services';
 import './App.css';
 
 function App() {
@@ -14,8 +17,14 @@ function App() {
       <Router>
         <div className="App">
           <Routes>
-            {/* Default redirect to auth */}
-            <Route path="/" element={<Navigate to="/auth" replace />} />
+            {/* Default redirect to login */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            
+            {/* Login page */}
+            <Route path="/login" element={<Login />} />
+            
+            {/* Services page */}
+            <Route path="/services" element={<Services />} />
             
             {/* Authentication page */}
             <Route path="/auth" element={<AuthPage />} />
@@ -34,7 +43,7 @@ function App() {
             />
             
             {/* Catch all redirect */}
-            <Route path="*" element={<Navigate to="/auth" replace />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </div>
         <Toaster />

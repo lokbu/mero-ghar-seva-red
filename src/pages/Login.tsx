@@ -1,13 +1,14 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { EnhancedInput } from '@/components/ui/enhanced-input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Phone, Mail, User, Briefcase, Shield, CheckCircle } from 'lucide-react';
-import OTPVerification from '@/components/OTPVerification';
+import { Phone, Mail, User, Briefcase, Shield, CheckCircle, ArrowLeft, RefreshCw, Clock } from 'lucide-react';
+import { EnhancedOTPInput } from '@/components/ui/enhanced-otp-input';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const [userType, setUserType] = useState<'customer' | 'provider'>('customer');
@@ -16,8 +17,27 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showOTP, setShowOTP] = useState(false);
+  const [otpValue, setOtpValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(120);
+  const [isResendEnabled, setIsResendEnabled] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    if (showOTP && timeLeft > 0) {
+      intervalId = setInterval(() => {
+        setTimeLeft((prevTime) => prevTime - 1);
+      }, 1000);
+    } else if (timeLeft === 0) {
+      setIsResendEnabled(true);
+      clearInterval(intervalId);
+    }
+
+    return () => clearInterval(intervalId);
+  }, [showOTP, timeLeft]);
 
   const handleSendOTP = async () => {
     if (!phoneNumber || phoneNumber.length < 10) {
@@ -35,6 +55,8 @@ const Login = () => {
       console.log('Sending OTP to:', phoneNumber);
       setShowOTP(true);
       setIsLoading(false);
+      setTimeLeft(120);
+      setIsResendEnabled(false);
       toast({
         title: "OTP पठाइयो / OTP Sent", 
         description: `OTP ${phoneNumber} मा पठाइयो / OTP sent to ${phoneNumber}`,
@@ -63,9 +85,9 @@ const Login = () => {
       });
       // Redirect based on user type
       if (userType === 'customer') {
-        window.location.href = '/customer';
+        navigate('/services');
       } else {
-        window.location.href = '/provider';
+        navigate('/provider-dashboard');
       }
     }, 1500);
   };
@@ -81,9 +103,9 @@ const Login = () => {
       });
       setTimeout(() => {
         if (userType === 'customer') {
-          window.location.href = '/customer';
+          navigate('/services');
         } else {
-          window.location.href = '/provider';
+          navigate('/provider-dashboard');
         }
       }, 1000);
     } else {
@@ -95,8 +117,16 @@ const Login = () => {
     }
   };
 
+  const handleOTPComplete = (otp: string) => {
+    setOtpValue(otp);
+    handleVerifyOTP(otp);
+  };
+
   const handleResendOTP = () => {
     console.log('Resending OTP to:', phoneNumber);
+    setIsResendEnabled(false);
+    setTimeLeft(120);
+    setOtpValue('');
     toast({
       title: "OTP फेरि पठाइयो / OTP Resent",
       description: `नयाँ OTP ${phoneNumber} मा पठाइयो / New OTP sent to ${phoneNumber}`
@@ -106,6 +136,13 @@ const Login = () => {
   const handleBackToLogin = () => {
     setShowOTP(false);
     setPhoneNumber('');
+    setOtpValue('');
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   if (showOTP) {
@@ -121,12 +158,93 @@ const Login = () => {
             <p className="text-sm text-gray-500">All home services in one place</p>
           </div>
           
-          <OTPVerification
-            phoneNumber={phoneNumber}
-            onVerify={handleVerifyOTP}
-            onBack={handleBackToLogin}
-            onResend={handleResendOTP}
-          />
+          <Card className="shadow-xl border-0 backdrop-blur-sm bg-white/95 animate-scale-in">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={handleBackToLogin}
+                  className="hover:bg-red-50 transition-colors duration-200"
+                >
+                  <ArrowLeft size={20} />
+                </Button>
+                <CardTitle className="text-gray-800 flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-red-600" />
+                  OTP प्रमाणीकरण / OTP Verification
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="text-center space-y-3">
+                <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto">
+                  <Shield className="w-8 h-8 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-gray-700 mb-2 font-medium">
+                    हामीले तपाईंको फोनमा OTP पठाएका छौं
+                  </p>
+                  <p className="text-sm text-gray-600 mb-4">
+                    We've sent a 6-digit verification code to
+                  </p>
+                  <p className="text-lg font-semibold text-red-600">
+                    +977 {phoneNumber}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-center">
+                <EnhancedOTPInput
+                  length={6}
+                  value={otpValue}
+                  onChange={setOtpValue}
+                  onComplete={handleOTPComplete}
+                  error={false}
+                />
+              </div>
+
+              <Button 
+                className="w-full bg-red-600 hover:bg-red-700 h-12 font-medium transition-all duration-200 hover:shadow-lg disabled:opacity-50"
+                onClick={() => handleVerifyOTP(otpValue)}
+                disabled={otpValue.length !== 6 || isLoading}
+              >
+                {isLoading ? (
+                  <LoadingSpinner size="sm" text="प्रमाणित गर्दै... / Verifying..." />
+                ) : (
+                  <>
+                    <CheckCircle className="mr-2" size={18} />
+                    प्रमाणित गर्नुहोस् / Verify
+                  </>
+                )}
+              </Button>
+
+              <div className="text-center space-y-3">
+                {!isResendEnabled ? (
+                  <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+                    <Clock size={16} />
+                    <span>OTP फेरि पठाउन: {formatTime(timeLeft)}</span>
+                  </div>
+                ) : (
+                  <Button 
+                    variant="ghost" 
+                    onClick={handleResendOTP}
+                    className="text-red-600 hover:bg-red-50 font-medium transition-colors duration-200"
+                  >
+                    <RefreshCw size={16} className="mr-2" />
+                    OTP फेरि पठाउनुहोस् / Resend OTP
+                  </Button>
+                )}
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-4 text-center">
+                <div className="text-xs text-gray-600 space-y-1">
+                  <p className="font-medium">समस्या छ? ग्राहक सेवामा सम्पर्क गर्नुहोस्</p>
+                  <p>Having trouble? Contact customer support</p>
+                  <p className="text-red-600 font-medium">Test OTP: 123456</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -152,7 +270,7 @@ const Login = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* User Type Selection with improved styling */}
+            {/* User Type Selection */}
             <div className="grid grid-cols-2 gap-3">
               <Button
                 variant={userType === 'customer' ? 'default' : 'outline'}
@@ -180,7 +298,7 @@ const Login = () => {
               </Button>
             </div>
 
-            {/* Enhanced Login Method Tabs */}
+            {/* Login Method Tabs */}
             <Tabs value={loginMethod} onValueChange={(value) => setLoginMethod(value as 'phone' | 'email')}>
               <TabsList className="grid w-full grid-cols-2 bg-gray-100">
                 <TabsTrigger value="phone" className="text-sm font-medium">
@@ -194,32 +312,20 @@ const Login = () => {
               </TabsList>
 
               <TabsContent value="phone" className="space-y-4 mt-6">
-                <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-sm font-medium">फोन नम्बर / Phone Number</Label>
-                  <div className="flex shadow-sm">
-                    <div className="bg-gray-100 px-4 py-3 rounded-l-md border border-r-0 text-sm font-medium flex items-center">
-                      +977
-                    </div>
-                    <Input
-                      id="phone"
-                      placeholder="98XXXXXXXX"
-                      className="rounded-l-none border-l-0 focus:ring-red-500 focus:border-red-500 h-12"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
+                <EnhancedInput
+                  label="फोन नम्बर / Phone Number"
+                  placeholder="98XXXXXXXX"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  disabled={isLoading}
+                />
                 <Button 
                   className="w-full bg-red-600 hover:bg-red-700 h-12 font-medium transition-all duration-200 hover:shadow-lg"
                   onClick={handleSendOTP}
-                  disabled={isLoading}
+                  disabled={isLoading || !phoneNumber}
                 >
                   {isLoading ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      पठाउँदै... / Sending...
-                    </div>
+                    <LoadingSpinner size="sm" text="पठाउँदै... / Sending..." />
                   ) : (
                     <>
                       <Phone className="mr-2" size={18} />
@@ -231,41 +337,31 @@ const Login = () => {
 
               <TabsContent value="email" className="space-y-4 mt-6">
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm font-medium">इमेल / Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="your@email.com"
-                      className="focus:ring-red-500 focus:border-red-500 h-12"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm font-medium">पासवर्ड / Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••"
-                      className="focus:ring-red-500 focus:border-red-500 h-12"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      disabled={isLoading}
-                    />
-                  </div>
+                  <EnhancedInput
+                    label="इमेल / Email"
+                    type="email"
+                    placeholder="your@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isLoading}
+                  />
+                  <EnhancedInput
+                    label="पासवर्ड / Password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
+                    showPasswordToggle={true}
+                  />
                 </div>
                 <Button 
                   className="w-full bg-red-600 hover:bg-red-700 h-12 font-medium transition-all duration-200 hover:shadow-lg"
                   onClick={handleEmailLogin}
-                  disabled={isLoading}
+                  disabled={isLoading || !email || !password}
                 >
                   {isLoading ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      लगइन गर्दै... / Logging in...
-                    </div>
+                    <LoadingSpinner size="sm" text="लगइन गर्दै... / Logging in..." />
                   ) : (
                     <>
                       <Mail className="mr-2" size={18} />
@@ -276,7 +372,7 @@ const Login = () => {
               </TabsContent>
             </Tabs>
 
-            {/* Enhanced Social Login Section */}
+            {/* Social Login */}
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t border-gray-200" />

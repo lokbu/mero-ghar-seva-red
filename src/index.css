@@ -106,6 +106,84 @@ All colors MUST be HSL.
   }
 }
 
+/* Enhanced animations */
+@layer utilities {
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes bounce-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.3);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    70% {
+      transform: scale(0.9);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.6s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.4s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.5s ease-out;
+  }
+
+  .animate-bounce-in {
+    animation: bounce-in 0.6s ease-out;
+  }
+
+  .hover-lift {
+    transition: all 0.3s ease;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  }
+}
+
 /* Custom red theme utilities */
 @layer utilities {
   .text-red-primary {
@@ -122,6 +200,10 @@ All colors MUST be HSL.
   
   .gradient-red {
     background: linear-gradient(135deg, hsl(4 85% 58%) 0%, hsl(4 85% 68%) 100%);
+  }
+
+  .gradient-red-orange {
+    background: linear-gradient(135deg, hsl(4 85% 58%) 0%, hsl(25 85% 58%) 100%);
   }
 }
 
@@ -141,5 +223,20 @@ All colors MUST be HSL.
       font-size: 0.875rem;
       line-height: 1.25rem;
     }
+  }
+}
+
+/* Glass morphism effects */
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .glass-dark {
+    background: rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 }
