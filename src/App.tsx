@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +8,7 @@ import CustomerDashboard from "./pages/CustomerDashboard";
 import ProviderDashboard from "./pages/ProviderDashboard";
 import ServiceCategories from "./pages/ServiceCategories";
 import BookingFlow from "./pages/BookingFlow";
+import OTPVerificationPage from "./pages/OTPVerification";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,6 +21,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Login />} />
+          <Route path="/otp" element={<OTPVerificationPage />} />
           <Route path="/customer" element={<CustomerDashboard />} />
           <Route path="/provider" element={<ProviderDashboard />} />
           <Route path="/services" element={<ServiceCategories />} />
