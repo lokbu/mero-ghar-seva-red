@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 import ServiceCard from '@/components/ServiceCard';
 import { Search, Filter, Grid, List, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
