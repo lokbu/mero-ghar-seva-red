@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, ArrowLeft, Star, MapPin, Hammer, Wrench, Mop, Plug } from 'lucide-react';
+import { Search, ArrowLeft, Star, MapPin, Hammer, Wrench, Sparkles, Plug } from 'lucide-react';
 
 const ServiceCategories = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,13 +30,13 @@ const ServiceCategories = () => {
       providers: 38,
       avgPrice: 'NPR 600-2000',
       rating: 4.7,
-      services: ['बत्ती जडान', 'फ्यान मर्मत', 'वायरिङ', 'सकेट मर्मत']
+      services: ['बत्ति जडान', 'फ्यान मर्मत', 'वायरिङ', 'सकेट मर्मत']
     },
     {
       id: 'cleaning',
       name: 'सफाई सेवा',
       nameEn: 'Cleaning',
-      icon: Mop,
+      icon: Sparkles,
       color: 'bg-green-100 text-green-700',
       providers: 52,
       avgPrice: 'NPR 800-2500',

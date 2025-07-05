@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, MapPin, Clock, Star, Filter, Hammer, Wrench, Mop, Plug } from 'lucide-react';
+import { Search, MapPin, Clock, Star, Filter, Hammer, Wrench, Sparkles, Plug } from 'lucide-react';
 
 const CustomerDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -12,7 +11,7 @@ const CustomerDashboard = () => {
   const popularServices = [
     { name: 'प्लम्बर', nameEn: 'Plumber', icon: Wrench, color: 'bg-blue-100 text-blue-700', price: 'NPR 500+' },
     { name: 'इलेक्ट्रिसियन', nameEn: 'Electrician', icon: Plug, color: 'bg-yellow-100 text-yellow-700', price: 'NPR 600+' },
-    { name: 'सफाई', nameEn: 'Cleaning', icon: Mop, color: 'bg-green-100 text-green-700', price: 'NPR 800+' },
+    { name: 'सफाई', nameEn: 'Cleaning', icon: Sparkles, color: 'bg-green-100 text-green-700', price: 'NPR 800+' },
     { name: 'मर्मत', nameEn: 'Repair', icon: Hammer, color: 'bg-purple-100 text-purple-700', price: 'NPR 400+' },
   ];
 
