@@ -6,10 +6,93 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Phone, Mail, User, Briefcase } from 'lucide-react';
+import OTPVerification from '@/components/OTPVerification';
+import { useToast } from '@/hooks/use-toast';
 
 const Login = () => {
   const [userType, setUserType] = useState<'customer' | 'provider'>('customer');
   const [loginMethod, setLoginMethod] = useState<'phone' | 'email'>('phone');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [showOTP, setShowOTP] = useState(false);
+  const { toast } = useToast();
+
+  const handleSendOTP = () => {
+    if (!phoneNumber || phoneNumber.length < 10) {
+      toast({
+        title: "गलत फोन नम्बर / Invalid Phone Number",
+        description: "कृपया सही फोन नम्बर राख्नुहोस् / Please enter a valid phone number",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Simulate OTP sending
+    console.log('Sending OTP to:', phoneNumber);
+    setShowOTP(true);
+    toast({
+      title: "OTP पठाइयो / OTP Sent", 
+      description: `OTP ${phoneNumber} मा पठाइयो / OTP sent to ${phoneNumber}`
+    });
+  };
+
+  const handleVerifyOTP = (otp: string) => {
+    // Simulate OTP verification
+    console.log('Verifying OTP:', otp);
+    
+    // For demo purposes, accept any 6-digit OTP
+    if (otp === '123456') {
+      toast({
+        title: "सफल / Success",
+        description: "सफलतापूर्वक लगइन भयो / Successfully logged in"
+      });
+      // Redirect to dashboard based on user type
+      if (userType === 'customer') {
+        window.location.href = '/customer';
+      } else {
+        window.location.href = '/provider';
+      }
+    } else {
+      toast({
+        title: "गलत OTP / Invalid OTP",
+        description: "कृपया सही OTP राख्नुहोस् / Please enter correct OTP",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleResendOTP = () => {
+    console.log('Resending OTP to:', phoneNumber);
+    toast({
+      title: "OTP फेरि पठाइयो / OTP Resent",
+      description: `नयाँ OTP ${phoneNumber} मा पठाइयो / New OTP sent to ${phoneNumber}`
+    });
+  };
+
+  const handleBackToLogin = () => {
+    setShowOTP(false);
+    setPhoneNumber('');
+  };
+
+  if (showOTP) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-red-50 to-white flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-red-600 mb-2">Sajilo Sewa</h1>
+            <p className="text-gray-600">घरका सबै सेवा एकै ठाउँमा</p>
+            <p className="text-sm text-gray-500">All home services in one place</p>
+          </div>
+          
+          <OTPVerification
+            phoneNumber={phoneNumber}
+            onVerify={handleVerifyOTP}
+            onBack={handleBackToLogin}
+            onResend={handleResendOTP}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-red-50 to-white flex items-center justify-center p-4">
@@ -61,10 +144,15 @@ const Login = () => {
                       id="phone"
                       placeholder="98XXXXXXXX"
                       className="rounded-l-none border-l-0 focus:ring-red-500"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
                     />
                   </div>
                 </div>
-                <Button className="w-full bg-red-600 hover:bg-red-700">
+                <Button 
+                  className="w-full bg-red-600 hover:bg-red-700"
+                  onClick={handleSendOTP}
+                >
                   <Phone className="mr-2" size={16} />
                   OTP पठाउनुहोस् / Send OTP
                 </Button>
