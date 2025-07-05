@@ -1,36 +1,46 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { Toaster } from '@/components/ui/toaster';
+import AuthPage from '@/components/auth/AuthPage';
+import EmailLinkCompletion from '@/components/auth/EmailLinkCompletion';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import Dashboard from '@/components/Dashboard';
+import './App.css';
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Login from "./pages/Login";
-import CustomerDashboard from "./pages/CustomerDashboard";
-import ProviderDashboard from "./pages/ProviderDashboard";
-import ServiceCategories from "./pages/ServiceCategories";
-import BookingFlow from "./pages/BookingFlow";
-import NotFound from "./pages/NotFound";
-
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/customer" element={<CustomerDashboard />} />
-          <Route path="/provider" element={<ProviderDashboard />} />
-          <Route path="/services" element={<ServiceCategories />} />
-          <Route path="/book" element={<BookingFlow />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <div className="App">
+          <Routes>
+            {/* Default redirect to auth */}
+            <Route path="/" element={<Navigate to="/auth" replace />} />
+            
+            {/* Authentication page */}
+            <Route path="/auth" element={<AuthPage />} />
+            
+            {/* Email link completion */}
+            <Route path="/complete-signin" element={<EmailLinkCompletion />} />
+            
+            {/* Protected dashboard */}
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Catch all redirect */}
+            <Route path="*" element={<Navigate to="/auth" replace />} />
+          </Routes>
+        </div>
+        <Toaster />
+      </Router>
+    </AuthProvider>
+  );
+}
 
 export default App;
