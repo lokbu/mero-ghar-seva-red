@@ -9,6 +9,12 @@ import { EnhancedOTPInput } from '@/components/ui/enhanced-otp-input';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { setupRecaptcha, sendOTPToPhone, sendEmailLink, completeEmailLinkSignIn } from '@/lib/firebase';
+import { RecaptchaVerifier, ConfirmationResult } from 'firebase/auth';
+import { useAuth } from '@/contexts/AuthContext';
+
+// Input validation functions
+import { validatePhoneNumber, validateEmail, sanitizeInput, formatPhoneNumber } from '@/lib/validation';
 
 const Login = () => {
   const [userType, setUserType] = useState<'customer' | 'provider'>('customer');
@@ -21,8 +27,23 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(120);
   const [isResendEnabled, setIsResendEnabled] = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Initialize reCAPTCHA when component mounts
+  useEffect(() => {
+    const verifier = setupRecaptcha('recaptcha-container');
+    setRecaptchaVerifier(verifier);
+
+    return () => {
+      if (verifier) {
+        verifier.clear();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
@@ -39,8 +60,21 @@ const Login = () => {
     return () => clearInterval(intervalId);
   }, [showOTP, timeLeft]);
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user) {
+      if (userType === 'customer') {
+        navigate('/services');
+      } else {
+        navigate('/provider-dashboard');
+      }
+    }
+  }, [user, userType, navigate]);
+
   const handleSendOTP = async () => {
-    if (!phoneNumber || phoneNumber.length < 10) {
+    const sanitizedPhone = sanitizeInput(phoneNumber);
+    
+    if (!sanitizedPhone || !validatePhoneNumber(sanitizedPhone)) {
       toast({
         title: "गलत फोन नम्बर / Invalid Phone Number",
         description: "कृपया सही फोन नम्बर राख्नुहोस् / Please enter a valid phone number",
@@ -49,24 +83,54 @@ const Login = () => {
       return;
     }
 
+    if (!recaptchaVerifier) {
+      toast({
+        title: "Error",
+        description: "Authentication system not ready. Please refresh the page.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
-    // Simulate API call delay
-    setTimeout(() => {
-      console.log('Sending OTP to:', phoneNumber);
+    try {
+      // Format phone number for Firebase
+      const formattedPhone = formatPhoneNumber(sanitizedPhone);
+      
+      const confirmation = await sendOTPToPhone(formattedPhone, recaptchaVerifier);
+      setConfirmationResult(confirmation);
       setShowOTP(true);
-      setIsLoading(false);
       setTimeLeft(120);
       setIsResendEnabled(false);
+      
       toast({
         title: "OTP पठाइयो / OTP Sent", 
-        description: `OTP ${phoneNumber} मा पठाइयो / OTP sent to ${phoneNumber}`,
+        description: "Verification code sent successfully",
         variant: "default"
       });
-    }, 1500);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to send OTP. Please try again.",
+        variant: "destructive"
+      });
+      
+      // Reset reCAPTCHA on error
+      if (recaptchaVerifier) {
+        recaptchaVerifier.clear();
+        const newVerifier = setupRecaptcha('recaptcha-container');
+        setRecaptchaVerifier(newVerifier);
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleEmailLogin = async () => {
-    if (!email || !password) {
+    const sanitizedEmail = sanitizeInput(email);
+    const sanitizedPassword = sanitizeInput(password);
+    
+    if (!sanitizedEmail || !sanitizedPassword) {
       toast({
         title: "गलत जानकारी / Invalid Information",
         description: "कृपया इमेल र पासवर्ड राख्नुहोस् / Please enter email and password",
@@ -75,45 +139,71 @@ const Login = () => {
       return;
     }
 
-    setIsLoading(true);
-    // Simulate login process
-    setTimeout(() => {
-      setIsLoading(false);
+    if (!validateEmail(sanitizedEmail)) {
       toast({
-        title: "सफल / Success",
-        description: "सफलतापूर्वक लगइन भयो / Successfully logged in"
+        title: "गलत इमेल / Invalid Email",
+        description: "कृपया सही इमेल ठेगाना राख्नुहोस् / Please enter a valid email address",
+        variant: "destructive"
       });
-      // Redirect based on user type
-      if (userType === 'customer') {
-        navigate('/services');
-      } else {
-        navigate('/provider-dashboard');
-      }
-    }, 1500);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await sendEmailLink(sanitizedEmail);
+      toast({
+        title: "इमेल पठाइयो / Email Sent",
+        description: "Login link sent to your email address",
+        variant: "default"
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to send login link. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleVerifyOTP = (otp: string) => {
-    console.log('Verifying OTP:', otp);
-    
-    if (otp === '123456') {
+  const handleVerifyOTP = async (otp: string) => {
+    if (!confirmationResult) {
+      toast({
+        title: "Error",
+        description: "No verification session found. Please request a new OTP.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (otp.length !== 6 || !/^\d{6}$/.test(otp)) {
+      toast({
+        title: "गलत OTP / Invalid OTP",
+        description: "कृपया ६ अंकको OTP राख्नुहोस् / Please enter a 6-digit OTP",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await confirmationResult.confirm(otp);
       toast({
         title: "सफल / Success",
         description: "सफलतापूर्वक लगइन भयो / Successfully logged in",
         variant: "default"
       });
-      setTimeout(() => {
-        if (userType === 'customer') {
-          navigate('/services');
-        } else {
-          navigate('/provider-dashboard');
-        }
-      }, 1000);
-    } else {
+      
+      // Navigation will be handled by the auth state change
+    } catch (error: any) {
       toast({
         title: "गलत OTP / Invalid OTP",
-        description: "कृपया सही OTP राख्नुहोस् / Please enter correct OTP",
+        description: "Please check and enter the correct verification code.",
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -122,15 +212,39 @@ const Login = () => {
     handleVerifyOTP(otp);
   };
 
-  const handleResendOTP = () => {
-    console.log('Resending OTP to:', phoneNumber);
-    setIsResendEnabled(false);
-    setTimeLeft(120);
-    setOtpValue('');
-    toast({
-      title: "OTP फेरि पठाइयो / OTP Resent",
-      description: `नयाँ OTP ${phoneNumber} मा पठाइयो / New OTP sent to ${phoneNumber}`
-    });
+  const handleResendOTP = async () => {
+    if (!recaptchaVerifier || !phoneNumber) {
+      toast({
+        title: "Error",
+        description: "Cannot resend OTP. Please try logging in again.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const formattedPhone = formatPhoneNumber(phoneNumber);
+      
+      const confirmation = await sendOTPToPhone(formattedPhone, recaptchaVerifier);
+      setConfirmationResult(confirmation);
+      setIsResendEnabled(false);
+      setTimeLeft(120);
+      setOtpValue('');
+      
+      toast({
+        title: "OTP फेरि पठाइयो / OTP Resent",
+        description: "New verification code sent successfully"
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to resend OTP. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleBackToLogin = () => {
@@ -240,7 +354,7 @@ const Login = () => {
                 <div className="text-xs text-gray-600 space-y-1">
                   <p className="font-medium">समस्या छ? ग्राहक सेवामा सम्पर्क गर्नुहोस्</p>
                   <p>Having trouble? Contact customer support</p>
-                  <p className="text-red-600 font-medium">Test OTP: 123456</p>
+                  <p className="text-red-600 font-medium">Support: +977-XXXXXXX</p>
                 </div>
               </div>
             </CardContent>
@@ -316,7 +430,7 @@ const Login = () => {
                   label="फोन नम्बर / Phone Number"
                   placeholder="98XXXXXXXX"
                   value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  onChange={(e) => setPhoneNumber(sanitizeInput(e.target.value))}
                   disabled={isLoading}
                 />
                 <Button 
@@ -342,7 +456,7 @@ const Login = () => {
                     type="email"
                     placeholder="your@email.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => setEmail(sanitizeInput(e.target.value))}
                     disabled={isLoading}
                   />
                   <EnhancedInput
@@ -350,7 +464,7 @@ const Login = () => {
                     type="password"
                     placeholder="••••••••"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => setPassword(sanitizeInput(e.target.value))}
                     disabled={isLoading}
                     showPasswordToggle={true}
                   />
@@ -403,6 +517,9 @@ const Login = () => {
             <div className="text-center text-sm text-gray-500">
               नयाँ खाता खोल्नुहोस्? <span className="text-red-600 cursor-pointer hover:underline font-medium">साइन अप / Sign Up</span>
             </div>
+
+            {/* reCAPTCHA container */}
+            <div id="recaptcha-container"></div>
           </CardContent>
         </Card>
       </div>

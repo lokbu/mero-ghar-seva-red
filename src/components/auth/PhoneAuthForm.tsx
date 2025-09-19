@@ -11,16 +11,23 @@ import { Loader2, Phone, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { setupRecaptcha, sendOTPToPhone } from '@/lib/firebase';
 import { RecaptchaVerifier, ConfirmationResult } from 'firebase/auth';
+import { validatePhoneNumber, sanitizeInput, validateOTP, formatPhoneNumber, createRateLimiter } from '@/lib/validation';
 
 const phoneSchema = z.object({
   phoneNumber: z
     .string()
     .min(1, 'Phone number is required')
-    .regex(/^\+[1-9]\d{1,14}$/, 'Please enter a valid international phone number (e.g., +1234567890)'),
+    .refine((phone) => validatePhoneNumber(sanitizeInput(phone)), {
+      message: 'Please enter a valid Nepal phone number (e.g., +9779812345678 or 9812345678)',
+    }),
 });
 
 const otpSchema = z.object({
-  otp: z.string().length(6, 'OTP must be 6 digits'),
+  otp: z
+    .string()
+    .refine((otp) => validateOTP(otp), {
+      message: 'OTP must be exactly 6 digits',
+    }),
 });
 
 type PhoneFormData = z.infer<typeof phoneSchema>;
@@ -37,7 +44,11 @@ const PhoneAuthForm: React.FC<PhoneAuthFormProps> = ({ onSuccess }) => {
   const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [attemptCount, setAttemptCount] = useState(0);
   const { toast } = useToast();
+
+  // Create rate limiter for OTP requests (max 3 attempts per 15 minutes)
+  const otpRateLimiter = createRateLimiter(3, 15 * 60 * 1000);
 
   const phoneForm = useForm<PhoneFormData>({
     resolver: zodResolver(phoneSchema),
@@ -78,7 +89,19 @@ const PhoneAuthForm: React.FC<PhoneAuthFormProps> = ({ onSuccess }) => {
     if (!recaptchaVerifier) {
       toast({
         title: 'Error',
-        description: 'reCAPTCHA not initialized. Please refresh the page.',
+        description: 'Authentication system not ready. Please refresh the page.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const sanitizedPhone = sanitizeInput(data.phoneNumber);
+    
+    // Rate limiting check
+    if (!otpRateLimiter(sanitizedPhone)) {
+      toast({
+        title: 'Too Many Attempts',
+        description: 'Please wait before requesting another OTP.',
         variant: 'destructive',
       });
       return;
@@ -86,22 +109,34 @@ const PhoneAuthForm: React.FC<PhoneAuthFormProps> = ({ onSuccess }) => {
 
     setLoading(true);
     try {
-      const confirmation = await sendOTPToPhone(data.phoneNumber, recaptchaVerifier);
+      const formattedPhone = formatPhoneNumber(sanitizedPhone);
+      const confirmation = await sendOTPToPhone(formattedPhone, recaptchaVerifier);
       setConfirmationResult(confirmation);
-      setPhoneNumber(data.phoneNumber);
+      setPhoneNumber(formattedPhone);
       setStep('otp');
-      setResendCooldown(60); // 60 seconds cooldown
+      setResendCooldown(60);
+      setAttemptCount(0);
+      
       toast({
         title: 'OTP Sent',
-        description: `Verification code sent to ${data.phoneNumber}`,
+        description: 'Verification code sent successfully',
       });
     } catch (error: any) {
-      console.error('Error sending OTP:', error);
+      let errorMessage = 'Failed to send OTP. Please try again.';
+      
+      // Don't expose detailed error messages to users
+      if (error.code === 'auth/quota-exceeded') {
+        errorMessage = 'SMS quota exceeded. Please try again later.';
+      } else if (error.code === 'auth/invalid-phone-number') {
+        errorMessage = 'Invalid phone number format.';
+      }
+      
       toast({
         title: 'Error',
-        description: error.message || 'Failed to send OTP. Please try again.',
+        description: errorMessage,
         variant: 'destructive',
       });
+      
       // Reset reCAPTCHA on error
       if (recaptchaVerifier) {
         recaptchaVerifier.clear();
@@ -117,9 +152,20 @@ const PhoneAuthForm: React.FC<PhoneAuthFormProps> = ({ onSuccess }) => {
     if (!confirmationResult) {
       toast({
         title: 'Error',
-        description: 'No confirmation result found. Please request a new OTP.',
+        description: 'No verification session found. Please request a new OTP.',
         variant: 'destructive',
       });
+      return;
+    }
+
+    // Limit OTP attempts
+    if (attemptCount >= 3) {
+      toast({
+        title: 'Too Many Failed Attempts',
+        description: 'Please request a new OTP.',
+        variant: 'destructive',
+      });
+      handleBackToPhone();
       return;
     }
 
@@ -132,10 +178,20 @@ const PhoneAuthForm: React.FC<PhoneAuthFormProps> = ({ onSuccess }) => {
       });
       onSuccess?.();
     } catch (error: any) {
-      console.error('Error verifying OTP:', error);
+      setAttemptCount(prev => prev + 1);
+      
+      let errorMessage = 'Invalid verification code. Please try again.';
+      if (error.code === 'auth/invalid-verification-code') {
+        errorMessage = 'Incorrect verification code. Please check and try again.';
+      } else if (error.code === 'auth/code-expired') {
+        errorMessage = 'Verification code has expired. Please request a new one.';
+        handleBackToPhone();
+        return;
+      }
+      
       toast({
-        title: 'Error',
-        description: error.message || 'Invalid OTP. Please try again.',
+        title: 'Verification Failed',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -146,20 +202,31 @@ const PhoneAuthForm: React.FC<PhoneAuthFormProps> = ({ onSuccess }) => {
   const handleResendOTP = async () => {
     if (resendCooldown > 0 || !recaptchaVerifier) return;
 
+    // Rate limiting check
+    if (!otpRateLimiter(phoneNumber)) {
+      toast({
+        title: 'Too Many Attempts',
+        description: 'Please wait before requesting another OTP.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const confirmation = await sendOTPToPhone(phoneNumber, recaptchaVerifier);
       setConfirmationResult(confirmation);
       setResendCooldown(60);
+      setAttemptCount(0);
+      
       toast({
         title: 'OTP Resent',
-        description: `New verification code sent to ${phoneNumber}`,
+        description: 'New verification code sent successfully',
       });
     } catch (error: any) {
-      console.error('Error resending OTP:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to resend OTP. Please try again.',
+        description: 'Failed to resend OTP. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -170,6 +237,7 @@ const PhoneAuthForm: React.FC<PhoneAuthFormProps> = ({ onSuccess }) => {
   const handleBackToPhone = () => {
     setStep('phone');
     setConfirmationResult(null);
+    setAttemptCount(0);
     otpForm.reset();
   };
 
