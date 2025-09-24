@@ -17,6 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { validatePhoneNumber, validateEmail, sanitizeInput, formatPhoneNumber } from '@/lib/validation';
 
 const Login = () => {
+  const [isSignUp, setIsSignUp] = useState(false);
   const [userType, setUserType] = useState<'customer' | 'provider'>('customer');
   const [loginMethod, setLoginMethod] = useState<'phone' | 'email'>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -380,7 +381,7 @@ const Login = () => {
           <CardHeader className="pb-4">
             <CardTitle className="text-center text-gray-800 flex items-center justify-center gap-2">
               <CheckCircle className="w-5 h-5 text-red-600" />
-              खाता खोल्नुहोस् / Login
+              {isSignUp ? 'नयाँ खाता खोल्नुहोस् / Sign Up' : 'खाता खोल्नुहोस् / Login'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -444,7 +445,7 @@ const Login = () => {
                   ) : (
                     <>
                       <Phone className="mr-2" size={18} />
-                      OTP पठाउनुहोस् / Send OTP
+                      {isSignUp ? 'खाता खोल्नुहोस् / Create Account' : 'OTP पठाउनुहोस् / Send OTP'}
                     </>
                   )}
                 </Button>
@@ -480,7 +481,7 @@ const Login = () => {
                   ) : (
                     <>
                       <Mail className="mr-2" size={18} />
-                      लगइन / Login
+                      {isSignUp ? 'खाता खोल्नुहोस् / Create Account' : 'लगइन / Login'}
                     </>
                   )}
                 </Button>
@@ -516,7 +517,25 @@ const Login = () => {
             </div>
 
             <div className="text-center text-sm text-gray-500">
-              नयाँ खाता खोल्नुहोस्? <span className="text-red-600 cursor-pointer hover:underline font-medium">साइन अप / Sign Up</span>
+              {isSignUp ? (
+                <>
+                  पहिले देखि खाता छ? <span 
+                    className="text-red-600 cursor-pointer hover:underline font-medium"
+                    onClick={() => setIsSignUp(false)}
+                  >
+                    लगइन / Login
+                  </span>
+                </>
+              ) : (
+                <>
+                  नयाँ खाता खोल्नुहोस्? <span 
+                    className="text-red-600 cursor-pointer hover:underline font-medium"
+                    onClick={() => setIsSignUp(true)}
+                  >
+                    साइन अप / Sign Up
+                  </span>
+                </>
+              )}
             </div>
 
             {/* Remove duplicate reCAPTCHA container */}
