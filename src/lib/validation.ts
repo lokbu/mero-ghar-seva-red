@@ -1,9 +1,10 @@
 // Security validation utilities
 
 export const validatePhoneNumber = (phone: string): boolean => {
-  // Validate Nepal phone number format
-  const phoneRegex = /^\+?977[0-9]{10}$|^[0-9]{10}$/;
-  return phoneRegex.test(phone.replace(/\s/g, ''));
+  // Validate Nepal phone number format - allow with or without +977
+  const cleaned = phone.replace(/\s/g, '');
+  const phoneRegex = /^\+977[9][0-9]{9}$|^[9][0-9]{9}$/;
+  return phoneRegex.test(cleaned);
 };
 
 export const validateEmail = (email: string): boolean => {
@@ -21,8 +22,14 @@ export const validateOTP = (otp: string): boolean => {
 };
 
 export const formatPhoneNumber = (phone: string): string => {
-  const cleaned = sanitizeInput(phone);
-  return cleaned.startsWith('+977') ? cleaned : `+977${cleaned}`;
+  const cleaned = sanitizeInput(phone).replace(/\s/g, '');
+  // Remove +977 if it exists, then add it back
+  const number = cleaned.startsWith('+977') ? cleaned.slice(4) : cleaned;
+  // Ensure it starts with 9 (valid Nepal mobile number format)
+  if (number.length === 10 && number.startsWith('9')) {
+    return `+977${number}`;
+  }
+  return `+977${number}`;
 };
 
 export const isStrongPassword = (password: string): boolean => {

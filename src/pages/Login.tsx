@@ -78,7 +78,7 @@ const Login = () => {
     if (!sanitizedPhone || !validatePhoneNumber(sanitizedPhone)) {
       toast({
         title: "गलत फोन नम्बर / Invalid Phone Number",
-        description: "कृपया सही फोन नम्बर राख्नुहोस् / Please enter a valid phone number",
+        description: "कृपया ९ बाट सुरु हुने १० अंकको मोबाइल नम्बर राख्नुहोस् / Please enter a 10-digit mobile number starting with 9",
         variant: "destructive"
       });
       return;
@@ -97,6 +97,7 @@ const Login = () => {
     try {
       // Format phone number for Firebase
       const formattedPhone = formatPhoneNumber(sanitizedPhone);
+      console.log('Sending OTP to:', formattedPhone);
       
       const confirmation = await sendOTPToPhone(formattedPhone, recaptchaVerifier);
       setConfirmationResult(confirmation);
@@ -106,13 +107,22 @@ const Login = () => {
       
       toast({
         title: "OTP पठाइयो / OTP Sent", 
-        description: "Verification code sent successfully",
+        description: `Verification code sent to ${formattedPhone}`,
         variant: "default"
       });
     } catch (error: any) {
+      console.error('Error sending OTP:', error);
+      let errorMessage = "Failed to send OTP. Please try again.";
+      
+      if (error.code === 'auth/invalid-phone-number') {
+        errorMessage = "Invalid phone number format.";
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = "Too many requests. Please try again later.";
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to send OTP. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
       
@@ -427,13 +437,28 @@ const Login = () => {
               </TabsList>
 
               <TabsContent value="phone" className="space-y-4 mt-6">
-                <EnhancedInput
-                  label="फोन नम्बर / Phone Number"
-                  placeholder="98XXXXXXXX"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(sanitizeInput(e.target.value))}
-                  disabled={isLoading}
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="phone">फोन नम्बर / Phone Number</Label>
+                  <div className="flex">
+                    <div className="flex items-center bg-gray-50 border border-r-0 border-gray-300 rounded-l-md px-3 h-12">
+                      <span className="text-gray-600 font-medium">+977</span>
+                    </div>
+                    <EnhancedInput
+                      id="phone"
+                      placeholder="98XXXXXXXX (10 digits)"
+                      value={phoneNumber}
+                      onChange={(e) => {
+                        const value = sanitizeInput(e.target.value);
+                        // Only allow numbers and limit to 10 digits
+                        const cleaned = value.replace(/\D/g, '').slice(0, 10);
+                        setPhoneNumber(cleaned);
+                      }}
+                      disabled={isLoading}
+                      className="rounded-l-none border-l-0"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500">नेपाली मोबाइल नम्बर (९ बाट सुरु हुने) / Nepali mobile number starting with 9</p>
+                </div>
                 <div id="recaptcha-container-login"></div>
                 <Button 
                   className="w-full bg-red-600 hover:bg-red-700 h-12 font-medium transition-all duration-200 hover:shadow-lg"

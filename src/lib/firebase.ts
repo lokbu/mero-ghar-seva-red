@@ -29,13 +29,19 @@ export const auth = getAuth(app);
 
 // Set up reCAPTCHA for phone authentication
 export const setupRecaptcha = (containerId: string): RecaptchaVerifier => {
+  // Clear any existing reCAPTCHA first
+  const existingContainer = document.getElementById(containerId);
+  if (existingContainer) {
+    existingContainer.innerHTML = '';
+  }
+  
   return new RecaptchaVerifier(auth, containerId, {
     size: 'invisible',
     callback: () => {
-      // reCAPTCHA solved, allow signInWithPhoneNumber
+      console.log('reCAPTCHA solved');
     },
     'expired-callback': () => {
-      // Response expired. Ask user to solve reCAPTCHA again.
+      console.log('reCAPTCHA expired');
     }
   });
 };
