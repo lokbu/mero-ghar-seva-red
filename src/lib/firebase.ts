@@ -12,12 +12,12 @@ import {
 } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyBGkHJX9QrVvNwWQdN8Xr1a2b3c4d5e6f7",
+  authDomain: "sajilo-sewa-demo.firebaseapp.com",
+  projectId: "sajilo-sewa-demo",
+  storageBucket: "sajilo-sewa-demo.appspot.com",
+  messagingSenderId: "123456789012",
+  appId: "1:123456789012:web:abcdef123456789012345"
 };
 
 // Initialize Firebase
