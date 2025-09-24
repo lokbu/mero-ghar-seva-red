@@ -35,7 +35,7 @@ const Login = () => {
 
   // Initialize reCAPTCHA when component mounts
   useEffect(() => {
-    const verifier = setupRecaptcha('recaptcha-container');
+    const verifier = setupRecaptcha('recaptcha-container-login');
     setRecaptchaVerifier(verifier);
 
     return () => {
@@ -118,7 +118,7 @@ const Login = () => {
       // Reset reCAPTCHA on error
       if (recaptchaVerifier) {
         recaptchaVerifier.clear();
-        const newVerifier = setupRecaptcha('recaptcha-container');
+        const newVerifier = setupRecaptcha('recaptcha-container-login');
         setRecaptchaVerifier(newVerifier);
       }
     } finally {
@@ -433,7 +433,7 @@ const Login = () => {
                   onChange={(e) => setPhoneNumber(sanitizeInput(e.target.value))}
                   disabled={isLoading}
                 />
-                <div id="recaptcha-container"></div>
+                <div id="recaptcha-container-login"></div>
                 <Button 
                   className="w-full bg-red-600 hover:bg-red-700 h-12 font-medium transition-all duration-200 hover:shadow-lg"
                   onClick={handleSendOTP}
@@ -519,8 +519,7 @@ const Login = () => {
               नयाँ खाता खोल्नुहोस्? <span className="text-red-600 cursor-pointer hover:underline font-medium">साइन अप / Sign Up</span>
             </div>
 
-            {/* reCAPTCHA container */}
-            <div id="recaptcha-container"></div>
+            {/* Remove duplicate reCAPTCHA container */}
           </CardContent>
         </Card>
       </div>

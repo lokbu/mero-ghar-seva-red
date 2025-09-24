@@ -66,7 +66,7 @@ const PhoneAuthForm: React.FC<PhoneAuthFormProps> = ({ onSuccess }) => {
 
   useEffect(() => {
     // Initialize reCAPTCHA when component mounts
-    const verifier = setupRecaptcha('recaptcha-container');
+    const verifier = setupRecaptcha('recaptcha-container-phone-auth');
     setRecaptchaVerifier(verifier);
 
     return () => {
@@ -140,7 +140,7 @@ const PhoneAuthForm: React.FC<PhoneAuthFormProps> = ({ onSuccess }) => {
       // Reset reCAPTCHA on error
       if (recaptchaVerifier) {
         recaptchaVerifier.clear();
-        const newVerifier = setupRecaptcha('recaptcha-container');
+        const newVerifier = setupRecaptcha('recaptcha-container-phone-auth');
         setRecaptchaVerifier(newVerifier);
       }
     } finally {
@@ -334,7 +334,7 @@ const PhoneAuthForm: React.FC<PhoneAuthFormProps> = ({ onSuccess }) => {
         )}
         
         {/* reCAPTCHA container */}
-        <div id="recaptcha-container"></div>
+        <div id="recaptcha-container-phone-auth"></div>
       </CardContent>
     </Card>
   );
