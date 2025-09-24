@@ -12,12 +12,13 @@ import {
 } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBGkHJX9QrVvNwWQdN8Xr1a2b3c4d5e6f7",
-  authDomain: "sajilo-sewa-demo.firebaseapp.com",
-  projectId: "sajilo-sewa-demo",
-  storageBucket: "sajilo-sewa-demo.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:abcdef123456789012345"
+  apiKey: "AIzaSyCURxuEVm-7tInXjvUw0La4PyUcwbeqgTc",
+  authDomain: "sajilo-sew.firebaseapp.com",
+  projectId: "sajilo-sew",
+  storageBucket: "sajilo-sew.firebasestorage.app",
+  messagingSenderId: "386309281061",
+  appId: "1:386309281061:web:1a6136705da8bbbed1f6cc",
+  measurementId: "G-FFRYPF3ZNY"
 };
 
 // Initialize Firebase
