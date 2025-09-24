@@ -433,6 +433,7 @@ const Login = () => {
                   onChange={(e) => setPhoneNumber(sanitizeInput(e.target.value))}
                   disabled={isLoading}
                 />
+                <div id="recaptcha-container"></div>
                 <Button 
                   className="w-full bg-red-600 hover:bg-red-700 h-12 font-medium transition-all duration-200 hover:shadow-lg"
                   onClick={handleSendOTP}
